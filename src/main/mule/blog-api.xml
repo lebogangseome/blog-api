@@ -1,0 +1,657 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:tracing="http://www.mulesoft.org/schema/mule/tracing" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/tracing/current/mule-tracing.xsd">
+	<flow name="blog-api-main">
+        <http:listener config-ref="blog-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="blog-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="blog-api-console">
+        <http:listener config-ref="blog-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="blog-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="blog-apiFlow" doc:id="c8b0ed6a-17ba-4f9e-9538-712977e4ff10" >
+		<ee:transform doc:name="Transform Message" doc:id="5e212f1b-0112-446a-ac67-1847ffc54d79" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="put:\articles\(slug):application\json:blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="9a474965-3709-443a-8ef1-51c862a6a836" key="#[Mule::p('os.articles')]" objectStore="Object_store" target="articles">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="033fbd94-7765-42e6-8e1e-f465624cf2d8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import mergeWith from dw::core::Objects
+var existing = vars.articles default []
+var all = if (existing is Array) existing else [existing]
+---
+all map ((item) ->
+        if (((item.Id default item.id) as String) == vars.slug)
+    item mergeWith payload
+  else
+    item
+)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="8e5b01da-17d2-4fb0-9564-16bc8b40b630" key="#[Mule::p('os.articles')]" objectStore="Object_store"/>
+		<tracing:remove-logging-variable doc:name="Remove logging variable" doc:id="6ba3f590-750d-4c14-8bce-3fc4a1407f57" variableName="articles"/>
+		<ee:transform doc:name="Transform Message" doc:id="2f6fcbc3-0f1c-4b7d-9cd2-82fcd7f491e1" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var all = payload default []
+var match = all filter ((a) -> ((a.Id default a.id) as String) == vars.slug)
+---
+{
+  message: "Article updated successfully",
+  data: if (isEmpty(match)) null else match[0]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" message="put:\articles\(slug):application\json:blog-api-config" />
+    </flow>
+    <flow name="put:\categories\(slug):application\json:blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="00ca3639-af89-4181-b438-4f3190a9d1c0" key="#[Mule::p('os.categories')]" objectStore="Object_store" target="categories">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="bf973710-f299-46d4-8b2a-863ccedca73a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import mergeWith from dw::core::Objects
+var existing = vars.categories default []
+var all = if (existing is Array) existing else [existing]
+---
+all map ((item) ->
+    if (((item.Id default item.id) as String) == vars.slug)
+      item mergeWith payload
+    else
+      item
+)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="74687415-3449-4216-8140-1672ca54b3d6" key="#[Mule::p('os.categories')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="182a22cc-1076-4e2d-8b04-e98c1e0a8f48" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var all = payload default []
+var match = all filter ((a) -> ((a.Id default a.id) as String) == vars.slug)
+---
+{ message: "Category updated successfully", data: if (isEmpty(match)) null else match[0] }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" message="put:\categories\(slug):application\json:blog-api-config" />
+    </flow>
+    <flow name="put:\comments\(slug):application\json:blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="6358438d-ec0d-491e-86ed-b6a540601c48" key="#[Mule::p('os.comments')]" objectStore="Object_store" target="comments">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="b700ad42-b5b9-41e1-bf55-6eb12a30347e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+import mergeWith from dw::core::Objects
+var existing = vars.comments default []
+var all = if (existing is Array) existing else [existing]
+---
+all map ((item) ->
+    if (((item.Id default item.id) as String) == vars.slug)
+      item mergeWith payload
+    else
+      item
+)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="0f8b1737-c475-4618-b420-b35f2338060e" key="#[Mule::p('os.comments')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="13932f12-6ea4-4ff1-be90-dc3f1a9c5cf3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var all = payload default []
+var match = all filter ((a) -> ((a.Id default a.id) as String) == vars.slug)
+---
+{
+  message: "Comment updated successfully",
+  data: if (isEmpty(match)) null else match[0]
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" message="put:\comments\(slug):application\json:blog-api-config" />
+    </flow>
+    <flow name="put:\writers\(slug):application\json:blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="put:\writers\(slug):application\json:blog-api-config" />
+    </flow>
+    <flow name="delete:\articles\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<os:retrieve doc:name="Retrieve" doc:id="35ab4a81-ed15-4842-9cf4-c9a00d59907d" key="#[Mule::p('os.articles')]" objectStore="Object_store" target="articles">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var existing = vars.articles default []
+var all = if (existing is Array) existing else [existing]
+---
+all filter ((item) -> not (((item.Id default item.id) as String) == vars.slug))]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<os:store doc:name="Store" doc:id="dde27001-a793-4431-bda8-ac9ced51ef04" key="#[Mule::p('os.articles')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="d5079554-3a09-4290-b5c6-e29626e14abf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var beforeRaw = vars.articles default []
+var before = if (beforeRaw is Array) beforeRaw else [beforeRaw]
+var existed = before filter ((a) -> ((a.Id default a.id) as String) == vars.slug)
+---
+if (isEmpty(existed))
+  { code: 404, message: "No article with id " ++ vars.slug }
+else
+  { message: "Article " ++ vars.slug ++ " deleted successfully", remaining: payload }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="e23bc567-8685-4ba3-b57a-745040405a08" />
+    </flow>
+    <flow name="delete:\categories\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="0a04992a-e2d8-4e76-8016-222f0c211dbc" key="#[Mule::p('os.categories')]" objectStore="Object_store" target="categories">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="remove article" doc:id="819a8d1d-99c7-462d-9666-4b9bf4015795" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var existing = vars.categories default []
+var all = if (existing is Array) existing else [existing]
+---
+all filter ((item) -> not (((item.Id default item.id) as String) == vars.slug))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="0c0a544b-b4eb-4241-9a6f-633daf20b04c" key="#[Mule::p('os.categories')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="6daaa5b0-0523-40a4-a775-59ed315fd0bf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var beforeRaw = vars.categories default []
+var before = if (beforeRaw is Array) beforeRaw else [beforeRaw]
+var existed = before filter ((a) -> ((a.Id default a.id) as String) == vars.slug)
+---
+if (isEmpty(existed))
+  { code: 404, message: "No category with id " ++ vars.slug }
+else
+  { message: "Category " ++ vars.slug ++ " deleted successfully", remaining: payload }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="237f125b-4e7c-4771-af41-9707a62c57ed" />
+    </flow>
+    <flow name="delete:\comments\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="42c713ca-57b7-4498-8a29-641380a60ede" key="#[Mule::p('os.comments')]" objectStore="Object_store" target="comments">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var existing = vars.comments default []
+var all = if (existing is Array) existing else [existing]
+---
+all filter ((item) -> not (((item.Id default item.id) as String) == vars.slug))]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<os:store doc:name="Store" doc:id="fb96da63-8f4e-4ee5-bf59-b27cf02acd58" key="#[Mule::p('os.comments')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="cb3b4e3b-8fad-4277-8ad0-685b2c8e8443" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var beforeRaw = vars.comments default []
+var before = if (beforeRaw is Array) beforeRaw else [beforeRaw]
+var existed = before filter ((a) -> ((a.Id default a.id) as String) == vars.slug)
+---
+if (isEmpty(existed))
+  { code: 404, message: "No comment with id " ++ vars.slug }
+else
+  { message: "Comment " ++ vars.slug ++ " deleted successfully", remaining: payload }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="f325def3-af9f-4ff0-a362-93d34f848c1a" />
+    </flow>
+    <flow name="delete:\writers\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" key="#[Mule::p('os.writers')]" objectStore="Object_store" target="writers">
+			<os:default-value><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="remove writer">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var existing = vars.writers default []
+var all = if (existing is Array) existing else [existing]
+---
+all filter ((item) -> not (((item.Id default item.id) as String) == vars.slug))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" key="#[Mule::p('os.writers')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var beforeRaw = vars.writers default []
+var before = if (beforeRaw is Array) beforeRaw else [beforeRaw]
+var existed = before filter ((a) -> ((a.Id default a.id) as String) == vars.slug)
+---
+if (isEmpty(existed))
+  { code: 404, message: "No writer with id " ++ vars.slug }
+else
+  { message: "Writer " ++ vars.slug ++ " deleted successfully", remaining: payload }]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" />
+    </flow>
+    
+	<flow name="get:\articles:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="ddc812f7-925d-42e4-aa06-d868d9ad5510" key="#[Mule::p('os.articles')]" objectStore="Object_store">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="a1b2c3d4-0006-4006-8006-000000000006">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="bbfe2f8e-4631-4301-bbed-09b82a9b73ac" />
+    </flow>
+    <flow name="get:\articles\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="a1b2c3d4-0005-4005-8005-000000000005" key="#[Mule::p('os.articles')]" objectStore="Object_store" target="articles">
+				<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+			</os:retrieve>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var existing = vars.articles default []
+var all = if (existing is Array) existing else [existing]
+var match = all filter ((item) -> ((item.Id default item.id) as String) == vars.slug)
+---
+if (isEmpty(match))
+  { code: 404, message: "No article with id " ++ vars.slug }
+else
+  match[0]]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\categories:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="c6567d0c-3940-4431-82f9-8288239be515" key="#[Mule::p('os.categories')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\categories\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="1009552b-5a3b-4f00-a9da-3e32cb0d62e6" key="#[Mule::p('os.categories')]" objectStore="Object_store" target="categories">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var existing = vars.categories default []
+var all = if (existing is Array) existing else [existing]
+var match = all filter ((item) -> ((item.Id default item.id) as String) == vars.slug)
+---
+if (isEmpty(match))
+  { code: 404, message: "No category with id " ++ vars.slug }
+else
+  match[0]]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\comments:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="77281405-ffb4-4d2b-a96c-2f170b0054d2" key="#[Mule::p('os.comments')]" objectStore="Object_store">
+            <os:default-value><![CDATA[#[[]]]]></os:default-value>
+        </os:retrieve>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\comments\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <os:retrieve doc:name="Retrieve" doc:id="4b300ad9-916d-4214-9dd9-bd5e1c05f500" key="#[Mule::p('os.comments')]" objectStore="Object_store">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="1a2f4121-0edf-4c6e-84fe-c4488812f097">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var raw = payload default []
+var all = if (raw is Array) raw else [raw]
+var match = all filter ((c) -> ((c.Id default c.id) as String) == vars.slug)
+---
+if (isEmpty(match))
+  { code: 404, description: "No comment with id " ++ vars.slug }
+else
+  match[0]]]></ee:set-payload>
+            </ee:message>
+			<ee:variables >
+			</ee:variables>
+        </ee:transform>
+    </flow>
+    <flow name="get:\writers:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="653fd8bf-77ae-4d84-98d8-801b64367e09" key="#[Mule::p('os.writers')]" objectStore="Object_store">
+			<os:default-value><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\writers\(slug):blog-api-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="slug">attributes.uriParams.'slug'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  code: 404,
+  description: "There are no articles to show"
+} as Object {encoding: "UTF-8", mediaType: "application/json"}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\articles:application\json:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="02528124-0619-4661-8d2f-f77cf6d97971" key="#[Mule::p('os.articles')]" objectStore="Object_store" target="articles">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="append new article" doc:id="6fc52ace-2df6-4121-8cfc-9602a52ebc26" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var existing = vars.articles default []
+---
+if (existing is Array) existing ++ [payload] else [existing, payload]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="c128e6d4-1d2f-467e-9cee-4686e02237a6" key="#[Mule::p('os.articles')]" objectStore="Object_store"/>
+		<remove-variable doc:name="Remove Variable" doc:id="6b1cf582-f268-40e3-a2b6-ea77225ca404" variableName="articles"/>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Article saved successfully",
+  data: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\categories:application\json:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="7cddd2f3-06bb-407c-9ea2-0e728bf2e052" key="#[Mule::p('os.categories')]" objectStore="Object_store" target="categories">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<ee:transform doc:name="Transform Message" doc:id="73b062a3-cc57-4577-a648-4c069ac9a6b6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var existing = vars.categories default []
+---
+if (existing is Array) existing ++ [payload] else [existing, payload]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="2999262f-1284-4f4a-a0a4-cf1cca8fcc69" objectStore="Object_store" key="#[Mule::p('os.categories')]"/>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Category saved successfully",
+  data: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\comments:application\json:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="a1b2c3d4-0001-4001-8001-000000000001" key="#[Mule::p('os.comments')]" objectStore="Object_store" target="comments">
+				<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+			</os:retrieve>
+			<ee:transform doc:name="append new comment" doc:id="a1b2c3d4-0002-4002-8002-000000000002" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var existing = vars.comments default []
+---
+if (existing is Array) existing ++ [payload] else [existing, payload]]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<os:store doc:name="Store" doc:id="07f5d835-3ccc-471c-adbe-234ea824e020" key="#[Mule::p('os.comments')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Comment saved successfully",
+  data: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\writers:application\json:blog-api-config">
+        <os:retrieve doc:name="Retrieve" doc:id="a1b2c3d4-0003-4003-8003-000000000003" key="#[Mule::p('os.writers')]" objectStore="Object_store" target="writers">
+				<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+			</os:retrieve>
+			<ee:transform doc:name="append new writer" doc:id="a1b2c3d4-0004-4004-8004-000000000004" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var existing = vars.writers default []
+---
+if (existing is Array) existing ++ [payload] else [existing, payload]]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<os:store doc:name="Store" doc:id="133264bb-2cfe-4c65-9b2a-4a82107a5579" key="#[Mule::p('os.writers')]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  message: "Writer saved successfully",
+  data: payload
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
